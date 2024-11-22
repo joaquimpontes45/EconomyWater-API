@@ -6,14 +6,14 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-def get_db_connection():
+def db_conexao():
     conn = sqlite3.connect('dados_solo.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 @app.route('/init', methods=['GET'])
 def init_db():
-    conn = get_db_connection()
+    conn = db_conexao()
     conn.execute('''CREATE TABLE IF NOT EXISTS dados (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         status_bomba INTEGER DEFAULT 0, 
@@ -47,13 +47,13 @@ def registrar_usuario():
     senha_hash = hashlib.sha256(senha.encode()).hexdigest()
 
     try:
-        conn = get_db_connection()
+        conn = db_conexao()
         conn.execute('INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)', (nome, email, senha_hash))
         conn.commit()
         conn.close()
-        return jsonify({"message": "Usuário cadastrado com sucesso!"}), 201
+        return jsonify({"message": "Usuário cadastrado"}), 201
     except sqlite3.IntegrityError:
-        return jsonify({"error": "Email já estar cadastrado!"}), 400
+        return jsonify({"error": "esse Email já é utilizado!"}), 400
 
 @app.route('/login', methods=['POST'])
 def login_usuario():
@@ -61,11 +61,11 @@ def login_usuario():
     senha = request.json.get('senha')
 
     if not identificador or not senha:
-        return jsonify({"error": "Identificador e senha são obrigatórios!"}), 400
+        return jsonify({"error": "Identificador ou senha não preenchido"}), 400
 
     senha_hash = hashlib.sha256(senha.encode()).hexdigest()
 
-    conn = get_db_connection()
+    conn = db_conexao()
     usuario = conn.execute('SELECT * FROM usuarios WHERE (email = ? OR nome = ?) AND senha = ?', 
                             (identificador, identificador, senha_hash)).fetchone()
     #print(usuario)
@@ -73,11 +73,11 @@ def login_usuario():
 
     if usuario:
         return jsonify({"message": "Usuário logado", "usuario": usuario['nome'],'email': usuario['email']}), 200
-    return jsonify({"error": "E-mail ou senha inválido!"}), 401
+    return jsonify({"error": "Usuário ou senha inválido!"}), 401
 
 @app.route('/dados', methods=['GET'])
 def get_dados():
-    conn = get_db_connection()
+    conn = db_conexao()
     dados = conn.execute('SELECT * FROM dados').fetchone()
     conn.close()
     return jsonify({
@@ -91,7 +91,7 @@ def get_dados():
 @app.route('/bomba', methods=['POST'])
 def alterar_bomba():
     novo_status = request.json.get('status')
-    conn = get_db_connection()
+    conn = db_conexao()
 
     if novo_status in [0, 1]:
         conn.execute('UPDATE dados SET status_bomba = ? WHERE id = 1', (novo_status,))
@@ -107,7 +107,7 @@ def atualizar_sensores():
     temperatura = request.json.get('temperatura')
     agua = request.json.get('agua')
 
-    conn = get_db_connection()
+    conn = db_conexao()
 
     if umidade is not None:
         conn.execute('UPDATE dados SET umidade_solo = ? WHERE id = 1', (umidade,))
@@ -126,24 +126,24 @@ def cadastrar_cultura():
     temperatura_ideal = request.json.get('temperatura_ideal')
     umidade_ideal = request.json.get('umidade_ideal')
 
-    # Implementar lógica para armazenar informações da cultura
+
 
     return jsonify({"message": "Cultura cadastrada"}), 200
 
 @app.route('/status_bomba', methods=['GET'])
 def get_status_bomba():
-    conn = get_db_connection()
+    conn = db_conexao()
     dados = conn.execute('SELECT status_bomba FROM dados WHERE id = 1').fetchone()
     conn.close()
 
     if dados:
         return jsonify({"status_bomba": dados['status_bomba']}), 200
-    return jsonify({"error": "Dados não encontrados!"}), 404
+    return jsonify({"error": "Dado não encontrado"}), 404
 
 
 @app.route('/status_sensores', methods=['GET'])
 def get_status_sensores():
-    conn = get_db_connection()
+    conn = db_conexao()
     dados = conn.execute('SELECT umidade_solo, temperatura_solo FROM dados WHERE id = 1').fetchone()
     conn.close()
 
