@@ -31,6 +31,12 @@ def init_db():
 
     if dados_existentes is None:
         conn.execute("INSERT INTO dados (status_bomba, umidade_solo, temperatura_solo, agua) VALUES (0, 0.0, 0.0, 0)")
+    cursor = conn.execute("SELECT id FROM usuarios WHERE email = 'adm@gmail.com'")
+    usuarios = cursor.fetchone()
+    senha='aDmEcoWater@3'
+    SenhaAdm = hashlib.sha256(senha.encode()).hexdigest()
+    if usuarios is None:
+        conn.execute("INSERT INTO usuarios (nome,email,senha) VALUES('adm','adm@gmail.com', ?)", (SenhaAdm,))
     conn.commit()
     conn.close()
     return jsonify({"message": "Banco de dados inicializado!"})
@@ -126,7 +132,7 @@ def cadastrar_cultura():
     temperatura_ideal = request.json.get('temperatura_ideal')
     umidade_ideal = request.json.get('umidade_ideal')
 
-
+    # Implementar lógica para armazenar informações da cultura
 
     return jsonify({"message": "Cultura cadastrada"}), 200
 
